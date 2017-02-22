@@ -46,6 +46,22 @@ int determineState() {
     return state;
 }
 
+void turnRight() {
+    leftMotor.SetPercent(15);
+    rightMotor.SetPercent(0);
+    while (determineState() == LEFT);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void turnLeft() {
+    rightMotor.SetPercent(15);
+    leftMotor.SetPercent(0);
+    while (determineState() == RIGHT);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
 void reset () {
     leftMotor.Stop();
     rightMotor.Stop();
