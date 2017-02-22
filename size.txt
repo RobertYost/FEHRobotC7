@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+  32860	   3424	   5588	  41872	   a390	../FEHRobot.elf
