@@ -5,11 +5,12 @@
 AnalogInputPin left(FEHIO::P3_0);
 AnalogInputPin middle(FEHIO::P3_7);
 AnalogInputPin right(FEHIO::P3_1);
+DigitalInputPin top_left_micro(FEHIO::P0_0);
+DigitalInputPin top_right_micro(FEHIO::P0_2);
+DigitalInputPin bottom_left_micro(FEHIO::P0_4);
+DigitalInputPin bottom_right_micro(FEHIO::P0_6);
 
-AnalogInputPin top_left_micro(FEHIO::P0_0);
-AnalogInputPin top_right_micro(FEHIO::P0_2);
-AnalogInputPin bottom_left_micro(FEHIO::P0_4);
-AnalogInputPin bottom_right_micro(FEHIO::P0_6);
+AnalogInputPin cds_cell(FEHIO::P0_7);
 
 
 DigitalEncoder leftEncoder(FEHIO::P1_0);
@@ -25,6 +26,8 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 #define CURVED_LEFT_THRESHOLD 1.275
 #define CURVED_MIDDLE_THRESHOLD 1.4175
 #define CURVED_RIGHT_THRESHOLD 1.491
+#define DRIVE_CORRECTION 0.9523
+#define COUNTS_PER_INCH 40.49
 
 #define CENTER 0
 #define RIGHT 1
@@ -63,9 +66,10 @@ void turnRight() {
     reset();
     leftMotor.SetPercent(15);
     rightMotor.SetPercent(-15);
-    while (leftEncoder.Counts() < 223 && rightEncoder.Counts() < 223) {
+    while (leftEncoder.Counts() < 280 && rightEncoder.Counts() < 280) {
         LCD.WriteLine("Turning right");
     }
+    reset();
 //    while (determineState() == LEFT);
 }
 
@@ -73,17 +77,31 @@ void turnLeft() {
     reset();
     rightMotor.SetPercent(15);
     leftMotor.SetPercent(-15);
-    while (leftEncoder.Counts() < 223 && rightEncoder.Counts() < 223) {
+    while (leftEncoder.Counts() < 280 && rightEncoder.Counts() < 280) {
         LCD.WriteLine("Turning left");
     }
+    reset();
 //    while (determineState() == RIGHT);
 }
 
 void Drive(int inches) {
     reset();
-    leftMotor.SetPercent(25);
+    leftMotor.SetPercent(24);
     rightMotor.SetPercent(25);
-    while ((leftEncoder.Counts() + rightEncoder.Counts()) / 2 <= 200 * inches ) {
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+//        LCD.Write("LEFT: ");
+//        LCD.WriteLine(leftEncoder.Counts());
+//        LCD.Write("Right: ");
+//        LCD.WriteLine(rightEncoder.Counts());
+    }
+    reset();
+}
+
+void Reverse(int inches) {
+    reset();
+    leftMotor.SetPercent(-24);
+    rightMotor.SetPercent(-25);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
         LCD.Write("LEFT: ");
         LCD.WriteLine(leftEncoder.Counts());
         LCD.Write("Right: ");
@@ -92,39 +110,62 @@ void Drive(int inches) {
     reset();
 }
 
+void ReverseUntilWall() {
+    reset();
+    leftMotor.SetPercent(-24);
+    rightMotor.SetPercent(-25);
+    while(bottom_right_micro.Value() && bottom_left_micro.Value());
+    reset();
+}
+
+void ForwardUntilWall() {
+    reset();
+    leftMotor.SetPercent(24);
+    rightMotor.SetPercent(25);
+    while(top_right_micro.Value() && top_left_micro.Value());
+    reset();
+}
+
+void ReverseUphill(int inches) {
+    reset();
+    leftMotor.SetPercent(-40);
+    rightMotor.SetPercent(-41);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+//        LCD.Write("LEFT: ");
+//        LCD.WriteLine(leftEncoder.Counts());
+//        LCD.Write("Right: ");
+//        LCD.WriteLine(rightEncoder.Counts());
+    }
+    reset();
+}
+
+void PushButtonAndHitSwitch() {
+    while (cds_cell.Value() > .7);
+
+    Drive(8);
+    turnLeft();
+    ReverseUntilWall();
+    Drive(28);
+    turnRight();
+    ReverseUphill(35);
+    turnRight();
+    ReverseUntilWall();
+    Drive(10);
+    turnLeft();
+    Reverse(20);
+    Sleep(7.0);
+    Drive(18);
+    turnRight();
+    Drive(12);
+}
+
 int main(void)
 {
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
 
-//    Drive(5);
-//    turnLeft();
-//    Drive(7);
-//    turnLeft();
-//    Drive(30);
-//    turnRight();
-//    Drive(5);
-//    turnLeft();
-//    Drive(8);
-    while (true) {
-//        LCD.Write("Top Left: ");
-//        LCD.WriteLine(top_left_micro.Value());
-//        LCD.Write("Top Right: ");
-//        LCD.WriteLine(top_right_micro.Value());
-//        LCD.Write("Bottom Left: ");
-//        LCD.WriteLine(bottom_left_micro.Value());
-//        LCD.Write("Bottom Right: ");
-//        LCD.WriteLine(bottom_right_micro.Value());
-//        Sleep(1.0);
-        LCD.Write("Left: ");
-        LCD.WriteLine(left.Value());
-        LCD.Write("Middle: ");
-        LCD.WriteLine(middle.Value());
-        LCD.Write("Right: ");
-        LCD.WriteLine(right.Value());
-        Sleep(1.0);
-    }
+    PushButtonAndHitSwitch();
 
     return 0;
 }
