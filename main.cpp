@@ -76,7 +76,7 @@ void Drive(int inches) {
 
 void Reverse(int inches) {
     reset();
-    int power = 25
+    int power = 25;
     leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
     rightMotor.SetPercent(-1*power);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches );
@@ -85,7 +85,7 @@ void Reverse(int inches) {
 
 void ReverseUntilWall() {
     reset();
-    int power = 25
+    int power = 25;
     leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
     rightMotor.SetPercent(-1*power);
     while(bottom_right_micro.Value() && bottom_left_micro.Value());
@@ -94,7 +94,7 @@ void ReverseUntilWall() {
 
 void ForwardUntilWall() {
     reset();
-    int power = 25
+    int power = 25;
     leftMotor.SetPercent(MOTOR_CORRECTION*power);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() && top_left_micro.Value());
@@ -111,7 +111,7 @@ void ReverseUphill(int inches) {
 }
 
 void PushButtonAndHitSwitch() {
-    start = TimeNow();
+    float start = TimeNow();
     while (cds_cell.Value() > .7 || TimeNow() - start < 30000);
 
     Drive(8);
