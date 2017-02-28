@@ -23,18 +23,25 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 #define STRAIGHT_MIDDLE_THRESHOLD 1.7003
 #define STRAIGHT_RIGHT_THRESHOLD 2.097
 
-#define CURVED_LEFT_THRESHOLD 1.275
-#define CURVED_MIDDLE_THRESHOLD 1.4175
-#define CURVED_RIGHT_THRESHOLD 1.491
+#define CURVED_LEFT_THRESHOLD 1.300
+#define CURVED_MIDDLE_THRESHOLD 1.234
+#define CURVED_RIGHT_THRESHOLD 1.740
 
 #define DRIVE_CORRECTION 0.9523
 #define COUNTS_PER_INCH 40.49
 #define MOTOR_CORRECTION 0.96
-#define TURN_COUNT 280
+#define TURN_COUNT 265
+#define TURNING_POWER 15
+
+#define INITIAL_TIMEOUT 30
 
 #define CENTER 0
 #define RIGHT 1
 #define LEFT 2
+
+#define NO_LIGHT 1.385
+#define BLUE_LIGHT 1.0
+#define RED_LIGHT 0.390
 
 void reset () {
     leftMotor.Stop();
@@ -43,92 +50,192 @@ void reset () {
     rightEncoder.ResetCounts();
 }
 
-void turnRight() {
-    reset();
-    int power = 15;
-    leftMotor.SetPercent(power);
-    rightMotor.SetPercent(-1*power);
-    while (leftEncoder.Counts() < TURN_COUNT && rightEncoder.Counts() < TURN_COUNT) {
-        LCD.WriteLine("Turning right");
-    }
-    reset();
-}
-
 void turnLeft() {
     reset();
-    int power = 15;
-    rightMotor.SetPercent(power);
-    leftMotor.SetPercent(-1*power);
+    rightMotor.SetPercent(TURNING_POWER);
+    leftMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < 280 && rightEncoder.Counts() < 280) {
-        LCD.WriteLine("Turning left");
+        LCD.WriteLine(cds_cell.Value());
     }
     reset();
 }
 
-void Drive(int inches) {
+void turnLeft(float degrees) {
+    reset();
+    leftMotor.SetPercent(-1 * TURNING_POWER);
+    rightMotor.SetPercent(TURNING_POWER);
+    while (leftEncoder.Counts() < (TURN_COUNT / 90) * degrees && rightEncoder.Counts() < (TURN_COUNT / 90) * degrees) {
+
+    }
+    reset();
+}
+
+void turnRight() {
+    reset();
+    leftMotor.SetPercent(TURNING_POWER);
+    rightMotor.SetPercent(-1 * TURNING_POWER);
+    while (leftEncoder.Counts() < TURN_COUNT && rightEncoder.Counts() < TURN_COUNT) {
+        LCD.WriteLine(cds_cell.Value());
+    }
+    reset();
+}
+
+void turnRight(float degrees) {
+    reset();
+    leftMotor.SetPercent(TURNING_POWER);
+    rightMotor.SetPercent(-1 * TURNING_POWER);
+    while (leftEncoder.Counts() < (TURN_COUNT / 90) * degrees && rightEncoder.Counts() < (TURN_COUNT / 90) * degrees) {
+
+    }
+    reset();
+}
+
+void Drive() {
     reset();
     int power = 25;
     leftMotor.SetPercent(MOTOR_CORRECTION*power);
     rightMotor.SetPercent(power);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches );
+    while(top_right_micro.Value() || top_left_micro.Value()) {
+        LCD.WriteLine(cds_cell.Value());
+    }
+    reset();
+}
+
+void Drive(float inches) {
+    reset();
+    int power = 25;
+    leftMotor.SetPercent(MOTOR_CORRECTION*power);
+    rightMotor.SetPercent(power);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+        LCD.WriteLine(cds_cell.Value());
+    }
+    reset();
+}
+
+void Drive(int inches, int motorPower) {
+    reset();
+    leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
+    rightMotor.SetPercent(motorPower);
+    while (rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches);
+    reset();
+}
+
+void Reverse() {
+    reset();
+    int power = 25;
+    leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
+    rightMotor.SetPercent(-1*power);
+    while(bottom_right_micro.Value() || bottom_left_micro.Value()) {
+        LCD.WriteLine(cds_cell.Value());
+    }
     reset();
 }
 
 void Reverse(int inches) {
     reset();
     int power = 25;
-    leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
-    rightMotor.SetPercent(-1*power);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches );
+    leftMotor.SetPercent(-1 * MOTOR_CORRECTION * power);
+    rightMotor.SetPercent(-1 * power);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+    }
     reset();
 }
 
-void ReverseUntilWall() {
+void Reverse(int inches, int motorPower) {
     reset();
-    int power = 25;
-    leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
-    rightMotor.SetPercent(-1*power);
-    while(bottom_right_micro.Value() && bottom_left_micro.Value());
-    reset();
-}
-
-void ForwardUntilWall() {
-    reset();
-    int power = 25;
-    leftMotor.SetPercent(MOTOR_CORRECTION*power);
-    rightMotor.SetPercent(power);
-    while(top_right_micro.Value() && top_left_micro.Value());
-    reset();
-}
-
-void ReverseUphill(int inches) {
-    reset();
-    int power = 41;
-    leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
-    rightMotor.SetPercent(-1*power);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches );
+    leftMotor.SetPercent(-1 * MOTOR_CORRECTION * motorPower);
+    rightMotor.SetPercent(-1 * motorPower);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+    }
     reset();
 }
 
 void PushButtonAndHitSwitch() {
-    float start = TimeNow();
-    while (cds_cell.Value() > .7 || TimeNow() - start < 30000);
 
-    Drive(8);
-    turnLeft();
-    ReverseUntilWall();
-    Drive(28);
-    turnRight();
-    ReverseUphill(35);
-    turnRight();
-    ReverseUntilWall();
+    float start = TimeNow();
+    Sleep(2.0);
+    while (cds_cell.Value() > .7) {
+        LCD.WriteLine(cds_cell.Value());
+        if (TimeNow() - start > INITIAL_TIMEOUT) {
+            LCD.WriteLine(cds_cell.Value());
+        }
+    }
+
+    // Drive out from start
     Drive(10);
+    // Back up into wall near start
     turnLeft();
-    Reverse(20);
-    Sleep(7.0);
-    Drive(18);
+    Reverse();
+    // Drive until wall opposite from previous wall is reached
+    Drive();
+    // Backup and turn to drive up the mudslide incline
+    Reverse(3);
     turnRight();
-    Drive(12);
+    Reverse(33, 40);
+    // Turn right to face wall to the right
+    turnRight();
+    // Backup to wall
+    Reverse();
+//    // Drive out to line up with seismograph button
+//    Drive(8);
+//    turnLeft();
+//    // Drive into seismograph button and wait
+//    Reverse(20);
+//    Sleep(7.0);
+//    // Back out to line up with lava switch
+//    Drive(18);
+//    // Turn to face lava switch and run into it
+//    turnRight();
+    Drive(23);
+    Sleep(2.0);
+    Reverse(5);
+}
+
+void ReadCdsCell() {
+    double value = cds_cell.Value();
+    if (value < RED_LIGHT) {
+        LCD.Clear(FEHLCD::Red);
+        LCD.SetFontColor(FEHLCD::White);
+        LCD.WriteLine("RED");
+    } else if (value < BLUE_LIGHT) {
+        LCD.Clear(FEHLCD::Blue);
+        LCD.SetFontColor(FEHLCD::White);
+        LCD.WriteLine("BLUE");
+    } else {
+        LCD.Clear(FEHLCD::Black);
+        LCD.SetFontColor(FEHLCD::White);
+        LCD.WriteLine("NONE");
+    }
+}
+
+void PullSwitchAndReadLight() {
+
+    float start = TimeNow();
+    Sleep(2.0);
+    while (cds_cell.Value() > .7) {
+        LCD.WriteLine(cds_cell.Value());
+        if (TimeNow() - start > INITIAL_TIMEOUT) {
+            LCD.WriteLine(cds_cell.Value());
+        }
+    }
+
+    Drive(12.25);
+    turnLeft();
+    Reverse();
+    Drive(8.5);
+    double time = TimeNow();
+    while (TimeNow() - time < 5) {
+        ReadCdsCell();
+    }
+    LCD.Clear(FEHLCD::Black);
+    Drive();
+    Reverse(1);
+    turnRight();
+    Reverse(35, 40);
+    turnRight();
+    Reverse();
+    Drive(25);
+    Reverse(5);
 }
 
 int main(void)
@@ -137,7 +244,9 @@ int main(void)
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
 
-    PushButtonAndHitSwitch();
+//    PushButtonAndHitSwitch();
+
+    PullSwitchAndReadLight();
 
     return 0;
 }
