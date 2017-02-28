@@ -29,7 +29,7 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 
 #define DRIVE_CORRECTION 0.9523
 #define COUNTS_PER_INCH 40.49
-#define MOTOR_CORRECTION 0.96
+#define MOTOR_CORRECTION 0.90
 #define TURN_COUNT 265
 #define TURNING_POWER 15
 
@@ -101,12 +101,24 @@ void Drive() {
     reset();
 }
 
+void DriveSlantLeft() {
+    reset();
+    int power = 25;
+    leftMotor.SetPercent(MOTOR_CORRECTION*power * 0.95);
+    rightMotor.SetPercent(power);
+    while(top_right_micro.Value() || top_left_micro.Value()) {
+        LCD.WriteLine(cds_cell.Value());
+    }
+    reset();
+}
+
 void Drive(float inches) {
     reset();
+    float start = TimeNow();
     int power = 25;
     leftMotor.SetPercent(MOTOR_CORRECTION*power);
     rightMotor.SetPercent(power);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
         LCD.WriteLine(cds_cell.Value());
     }
     reset();
@@ -114,18 +126,20 @@ void Drive(float inches) {
 
 void Drive(int inches, int motorPower) {
     reset();
+    float start = TimeNow();
     leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
     rightMotor.SetPercent(motorPower);
-    while (rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches);
+    while (rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10);
     reset();
 }
 
 void Reverse() {
     reset();
+    float start = TimeNow();
     int power = 25;
     leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
     rightMotor.SetPercent(-1*power);
-    while(bottom_right_micro.Value() || bottom_left_micro.Value()) {
+    while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 10) {
         LCD.WriteLine(cds_cell.Value());
     }
     reset();
@@ -133,19 +147,21 @@ void Reverse() {
 
 void Reverse(int inches) {
     reset();
+    float start = TimeNow();
     int power = 25;
     leftMotor.SetPercent(-1 * MOTOR_CORRECTION * power);
     rightMotor.SetPercent(-1 * power);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
     }
     reset();
 }
 
 void Reverse(int inches, int motorPower) {
     reset();
+    float start = TimeNow();
     leftMotor.SetPercent(-1 * MOTOR_CORRECTION * motorPower);
     rightMotor.SetPercent(-1 * motorPower);
-    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches ) {
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
     }
     reset();
 }
@@ -228,13 +244,13 @@ void PullSwitchAndReadLight() {
         ReadCdsCell();
     }
     LCD.Clear(FEHLCD::Black);
-    Drive();
+    DriveSlantLeft();
     Reverse(1);
     turnRight();
-    Reverse(35, 40);
+    Reverse(34, 50);
     turnRight();
     Reverse();
-    Drive(25);
+    Drive(23.75);
     Reverse(5);
 }
 
