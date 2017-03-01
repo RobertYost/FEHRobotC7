@@ -93,7 +93,7 @@ void turnRight(float degrees) {
 void Drive() {
     reset();
     int power = 25;
-    leftMotor.SetPercent(MOTOR_CORRECTION*power);
+    leftMotor.SetPercent(MOTOR_CORRECTION * power);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
         LCD.WriteLine(cds_cell.Value());
@@ -104,7 +104,7 @@ void Drive() {
 void DriveSlantLeft() {
     reset();
     int power = 25;
-    leftMotor.SetPercent(MOTOR_CORRECTION*power * 0.95);
+    leftMotor.SetPercent(MOTOR_CORRECTION * power * 0.95);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
         LCD.WriteLine(cds_cell.Value());
@@ -116,7 +116,7 @@ void Drive(float inches) {
     reset();
     float start = TimeNow();
     int power = 25;
-    leftMotor.SetPercent(MOTOR_CORRECTION*power);
+    leftMotor.SetPercent(MOTOR_CORRECTION * power);
     rightMotor.SetPercent(power);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
         LCD.WriteLine(cds_cell.Value());
