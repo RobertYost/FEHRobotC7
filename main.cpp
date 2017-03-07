@@ -2,10 +2,12 @@
 #include <FEHIO.h>
 #include <FEHMotor.h>
 #include <FEHUtility.h>
+#include <FEHServo.h>
 
 AnalogInputPin left(FEHIO::P3_0);
 AnalogInputPin middle(FEHIO::P3_7);
-AnalogInputPin right(FEHIO::P3_1);
+AnalogInputPin right(FEHIO::P3_4);
+
 DigitalInputPin top_left_micro(FEHIO::P0_0);
 DigitalInputPin top_right_micro(FEHIO::P0_2);
 DigitalInputPin bottom_left_micro(FEHIO::P0_4);
@@ -18,6 +20,8 @@ DigitalEncoder rightEncoder(FEHIO::P1_1);
 
 FEHMotor leftMotor( FEHMotor::Motor0, 12.0);
 FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
+
+FEHServo servoArm(FEHServo::Servo0);
 
 #define STRAIGHT_LEFT_THRESHOLD 1.543
 #define STRAIGHT_MIDDLE_THRESHOLD 1.7003
@@ -39,9 +43,13 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 #define RIGHT 1
 #define LEFT 2
 
-#define NO_LIGHT 1.385
-#define BLUE_LIGHT 1.0
-#define RED_LIGHT 0.390
+#define NO_LIGHT 2.000
+#define BLUE_LIGHT .500
+#define RED_LIGHT 0.300
+
+#define NO_LIGHT_STATE 10
+#define BLUE_LIGHT_STATE 11
+#define RED_LIGHT_STATE 12
 
 void reset () {
     leftMotor.Stop();
@@ -207,20 +215,23 @@ void PushButtonAndHitSwitch() {
     Reverse(5);
 }
 
-void ReadCdsCell() {
+int ReadCdsCell() {
     double value = cds_cell.Value();
     if (value < RED_LIGHT) {
         LCD.Clear(FEHLCD::Red);
         LCD.SetFontColor(FEHLCD::White);
-        LCD.WriteLine("RED");
+        LCD.WriteRC("RED", 3, 5);
+        return RED_LIGHT_STATE;
     } else if (value < BLUE_LIGHT) {
         LCD.Clear(FEHLCD::Blue);
         LCD.SetFontColor(FEHLCD::White);
-        LCD.WriteLine("BLUE");
+        LCD.WriteRC("BLUE", 3, 5);
+        return BLUE_LIGHT_STATE;
     } else {
         LCD.Clear(FEHLCD::Black);
         LCD.SetFontColor(FEHLCD::White);
-        LCD.WriteLine("NONE");
+        LCD.WriteRC("NO LIGHT", 3, 5);
+        return NO_LIGHT_STATE;
     }
 }
 
@@ -254,15 +265,81 @@ void PullSwitchAndReadLight() {
     Reverse(5);
 }
 
+void checkHeading(int degrees) {
+    // TODO: Implement heading check logic
+}
+
+void rotateArm(float degrees) {
+    // TODO: Implement servo rotation logic here
+}
+
+void PullCoreAndDeposit() {
+    float start = TimeNow();
+    Sleep(1.0);
+    while (cds_cell.Value() > .7 || TimeNow() - start < INITIAL_TIMEOUT) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
+    }
+    LCD.Clear(FEHLCD::Black);
+    Reverse(12.25);
+    turnRight();
+    Reverse();
+    Drive(8.5);
+    float time = TimeNow();
+    int light_state = 0;
+    while (TimeNow() - time < 5) {
+        light_state = ReadCdsCell();
+    }
+    LCD.Clear(FEHLCD::Black);
+    DriveSlantLeft();
+    Reverse(1);
+    turnRight();
+    Reverse(34, 50);
+    turnRight();
+
+    //TODO: Fix below code to reflect actual measurements
+    checkHeading(135); // How many ever degrees the robot may have to turn to line up with the core
+    Drive(15);
+    // TODO: add line following code right here
+    // rotateArm();
+    // TODO: Navigate back to deposit box
+    if (light_state == RED_LIGHT_STATE) {
+        reset();
+        turnLeft();
+        Drive(3);
+        turnRight();
+        Drive();
+        // TODO: Add servo logic to shake piece off of arm to scrape it off
+        Reverse(5, 10);
+    } else if (light_state == BLUE_LIGHT_STATE) {
+        reset();
+        turnRight();
+        Drive(3);
+        turnRight();
+        Drive();
+        // TODO: Add servo logic to shake piece off of arm to scrape it off
+        Reverse(5, 10);
+    }
+    // TODO: Add logic to navigate to satellite and rotate it or touch it
+}
+
 int main(void)
 {
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
 
+    servoArm.TouchCalibrate();
+    servoArm.SetMin();
+    servoArm.SetMax();
+
 //    PushButtonAndHitSwitch();
 
     PullSwitchAndReadLight();
+
+    while (true) {
+        LCD.WriteRC("Servo position: ", 3, 5);
+        LCD.WriteRC(servoArm._position, 4, 5);
+    }
 
     return 0;
 }
