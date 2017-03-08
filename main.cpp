@@ -3,6 +3,11 @@
 #include <FEHMotor.h>
 #include <FEHUtility.h>
 #include <FEHServo.h>
+#include <FEHRPS.h>
+#include <FEHSD.h>
+#include <cmath>
+
+#include "rpsnav.h"
 
 AnalogInputPin left(FEHIO::P3_0);
 AnalogInputPin middle(FEHIO::P3_7);
@@ -23,13 +28,14 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 
 FEHServo servoArm(FEHServo::Servo0);
 
-#define STRAIGHT_LEFT_THRESHOLD 1.543
-#define STRAIGHT_MIDDLE_THRESHOLD 1.7003
-#define STRAIGHT_RIGHT_THRESHOLD 2.097
 
-#define CURVED_LEFT_THRESHOLD 1.300
-#define CURVED_MIDDLE_THRESHOLD 1.234
-#define CURVED_RIGHT_THRESHOLD 1.740
+#define BLACK_LEFT_THRESHOLD 1.543
+#define BLACK_MIDDLE_THRESHOLD 1.7003
+#define BLACK_RIGHT_THRESHOLD 2.097
+
+#define ORANGE_LEFT_THRESHOLD 1.300
+#define ORANGE_MIDDLE_THRESHOLD 1.234
+#define ORANGE_RIGHT_THRESHOLD 1.740
 
 #define DRIVE_CORRECTION 0.9523
 #define COUNTS_PER_INCH 40.49
@@ -51,7 +57,79 @@ FEHServo servoArm(FEHServo::Servo0);
 #define BLUE_LIGHT_STATE 11
 #define RED_LIGHT_STATE 12
 
-void reset () {
+int determineState() {
+    int state = CENTER;
+    bool leftBool, centerBool, rightBool;
+    leftBool = left.Value() > ORANGE_LEFT_THRESHOLD;
+    centerBool = middle.Value() > ORANGE_MIDDLE_THRESHOLD;
+    rightBool = right.Value() > ORANGE_RIGHT_THRESHOLD;
+
+    if (centerBool) {
+        state = CENTER;
+    } else {
+        if (leftBool) {
+            state = LEFT;
+        }
+        if (rightBool) {
+            state = RIGHT;
+        }
+    }
+
+    return state;
+}
+
+void DriveLine() {
+    leftMotor.SetPercent(MOTOR_CORRECTION*10);
+    rightMotor.SetPercent(10);
+    float start = TimeNow();
+    while (determineState() == CENTER && TimeNow() - start < 1);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+
+void turnLeftLine() {
+    rightMotor.SetPercent(0);
+    leftMotor.SetPercent(10);
+    float start = TimeNow();
+    while (determineState() == RIGHT && TimeNow() - start < 1);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void turnRightLine() {
+    leftMotor.SetPercent(0);
+    rightMotor.SetPercent(10);
+    float start = TimeNow();
+    while (determineState() == LEFT && TimeNow() - start < 1);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void LineFollow(float time) {
+    float start = TimeNow();
+    while( TimeNow() - start < time )
+        {
+            int state = determineState();
+            LCD.WriteLine(state);
+            switch (state) {
+            case CENTER:
+                DriveLine();
+                break;
+            case LEFT:
+                turnRightLine();
+                break;
+            case RIGHT:
+                turnLeftLine();
+                break;
+            default:
+                LCD.WriteRC("I'm going off the line, I am die. RIP", 4, 5);
+                break;
+            }
+        }
+}
+
+void reset() {
     leftMotor.Stop();
     rightMotor.Stop();
     leftEncoder.ResetCounts();
@@ -63,7 +141,7 @@ void turnLeft() {
     rightMotor.SetPercent(TURNING_POWER);
     leftMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < 280 && rightEncoder.Counts() < 280) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -83,7 +161,7 @@ void turnRight() {
     leftMotor.SetPercent(TURNING_POWER);
     rightMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < TURN_COUNT && rightEncoder.Counts() < TURN_COUNT) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -93,7 +171,7 @@ void turnRight(float degrees) {
     leftMotor.SetPercent(TURNING_POWER);
     rightMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < (TURN_COUNT / 90) * degrees && rightEncoder.Counts() < (TURN_COUNT / 90) * degrees) {
-
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -104,7 +182,7 @@ void Drive() {
     leftMotor.SetPercent(MOTOR_CORRECTION * power);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -115,7 +193,7 @@ void DriveSlantLeft() {
     leftMotor.SetPercent(MOTOR_CORRECTION * power * 0.95);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -127,7 +205,7 @@ void Drive(float inches) {
     leftMotor.SetPercent(MOTOR_CORRECTION * power);
     rightMotor.SetPercent(power);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -137,7 +215,9 @@ void Drive(int inches, int motorPower) {
     float start = TimeNow();
     leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
     rightMotor.SetPercent(motorPower);
-    while (rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10);
+    while (rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
+    }
     reset();
 }
 
@@ -148,7 +228,7 @@ void Reverse() {
     leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
     rightMotor.SetPercent(-1*power);
     while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 10) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -160,6 +240,7 @@ void Reverse(int inches) {
     leftMotor.SetPercent(-1 * MOTOR_CORRECTION * power);
     rightMotor.SetPercent(-1 * power);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -170,7 +251,17 @@ void Reverse(int inches, int motorPower) {
     leftMotor.SetPercent(-1 * MOTOR_CORRECTION * motorPower);
     rightMotor.SetPercent(-1 * motorPower);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
+    reset();
+}
+
+void DriveFindLine(int motorPower){
+    reset();
+    float start = TimeNow();
+    leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
+    rightMotor.SetPercent(motorPower);
+    while (left.Value() > ORANGE_LEFT_THRESHOLD && right.Value() > ORANGE_RIGHT_THRESHOLD && middle.Value() > ORANGE_MIDDLE_THRESHOLD);
     reset();
 }
 
@@ -242,7 +333,7 @@ void PullSwitchAndReadLight() {
     while (cds_cell.Value() > .7) {
         LCD.WriteLine(cds_cell.Value());
         if (TimeNow() - start > INITIAL_TIMEOUT) {
-            LCD.WriteLine(cds_cell.Value());
+            LCD.WriteRC(cds_cell.Value(), 4, 5);
         }
     }
 
@@ -251,8 +342,9 @@ void PullSwitchAndReadLight() {
     Reverse();
     Drive(8.5);
     double time = TimeNow();
+    int cds_state = 0;
     while (TimeNow() - time < 5) {
-        ReadCdsCell();
+        cds_state = ReadCdsCell();
     }
     LCD.Clear(FEHLCD::Black);
     DriveSlantLeft();
@@ -265,61 +357,81 @@ void PullSwitchAndReadLight() {
     Reverse(5);
 }
 
-void checkHeading(int degrees) {
-    // TODO: Implement heading check logic
-}
 
-void rotateArm(float degrees) {
-    // TODO: Implement servo rotation logic here
-}
 
 void PullCoreAndDeposit() {
+
+    // Read light to start and make sure arm is upright
+    servoArm.SetDegree(90);
     float start = TimeNow();
     Sleep(1.0);
-    while (cds_cell.Value() > .7 || TimeNow() - start < INITIAL_TIMEOUT) {
+    while (cds_cell.Value() > .7 && TimeNow() - start < INITIAL_TIMEOUT) {
         LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     LCD.Clear(FEHLCD::Black);
-    Reverse(12.25);
+    // Back out and drive to the core deposit light, read it's color, and store it
+    Reverse(10.25);
     turnRight();
     Reverse();
-    Drive(8.5);
+    Drive(6.5);
     float time = TimeNow();
     int light_state = 0;
     while (TimeNow() - time < 5) {
         light_state = ReadCdsCell();
     }
     LCD.Clear(FEHLCD::Black);
+    // Drive to the wall nearest the mudslide ramp
     DriveSlantLeft();
+    // Drive up the mudslide
     Reverse(1);
     turnRight();
-    Reverse(34, 50);
+    Reverse(40, 60);
+    turnRight();
+    Reverse();
+    Drive(8);
+    turnLeft();
+    Reverse(25);
     turnRight();
 
+
     //TODO: Fix below code to reflect actual measurements
-    checkHeading(135); // How many ever degrees the robot may have to turn to line up with the core
-    Drive(15);
-    // TODO: add line following code right here
-    // rotateArm();
+    //checkHeading(135); // How many ever degrees the robot may have to turn to line up with the core
+    servoArm.SetDegree(90);
+    DriveFindLine(10);
+    LineFollow(6.0);
+    Reverse(7,10);
+    servoArm.SetDegree(15);
+    LineFollow(4.0);
+    servoArm.SetDegree(30);
+    Reverse(10, 15);
+    servoArm.SetDegree(90);
+    turnLeft(30);
+    Reverse();
+
+
     // TODO: Navigate back to deposit box
-    if (light_state == RED_LIGHT_STATE) {
-        reset();
-        turnLeft();
-        Drive(3);
-        turnRight();
-        Drive();
-        // TODO: Add servo logic to shake piece off of arm to scrape it off
-        Reverse(5, 10);
-    } else if (light_state == BLUE_LIGHT_STATE) {
-        reset();
-        turnRight();
-        Drive(3);
-        turnRight();
-        Drive();
-        // TODO: Add servo logic to shake piece off of arm to scrape it off
-        Reverse(5, 10);
-    }
+//    if (light_state == RED_LIGHT_STATE) {
+//        reset();
+//        turnLeft();
+//        Drive(3);
+//        turnRight();
+//        Drive();
+//        // TODO: Add servo logic to shake piece off of arm to scrape it off
+//        Reverse(5, 10);
+//    } else if (light_state == BLUE_LIGHT_STATE) {
+//        reset();
+//        turnRight();
+//        Drive(3);
+//        turnRight();
+//        Drive();
+//        // TODO: Add servo logic to shake piece off of arm to scrape it off
+//        Reverse(5, 10);
+//    }
     // TODO: Add logic to navigate to satellite and rotate it or touch it
+    LCD.Clear(FEHLCD::Black);
+    LCD.WriteRC("Satellite percent: ", 4, 5);
+    LCD.WriteRC(RPS.SatellitePercent(), 4, 8);
+    SD.Printf("Satellite percent: %f\n", RPS.SatellitePercent());
 }
 
 int main(void)
@@ -328,18 +440,22 @@ int main(void)
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
 
-    servoArm.TouchCalibrate();
-    servoArm.SetMin();
-    servoArm.SetMax();
+    //servoArm.TouchCalibrate();
+    servoArm.SetMin(500);
+    servoArm.SetMax(2500);
+
+//    float x,y;
+//    while (!LCD.Touch(&x, &y));
+    PullCoreAndDeposit();
 
 //    PushButtonAndHitSwitch();
 
-    PullSwitchAndReadLight();
+    //PullSwitchAndReadLight();
 
-    while (true) {
-        LCD.WriteRC("Servo position: ", 3, 5);
-        LCD.WriteRC(servoArm._position, 4, 5);
-    }
+//    while (true) {
+//        LCD.WriteRC("Servo position: ", 3, 5);
+//        LCD.WriteRC(servoArm._position, 4, 5);
+//    }
 
     return 0;
 }
