@@ -194,6 +194,18 @@ void DriveSlantLeft() {
     reset();
 }
 
+void DriveSlantRight(float inches) {
+    reset();
+    int power = 25;
+    float start = TimeNow();
+    leftMotor.SetPercent(MOTOR_CORRECTION*power*1.10);
+    rightMotor.SetPercent(power);
+    while(rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
+    }
+    reset();
+}
+
 void Drive(float inches) {
     reset();
     float start = TimeNow();
@@ -341,8 +353,14 @@ void PT3() {
         light_state = ReadCdsCell();
     }
     LCD.Clear(FEHLCD::Black);
-    DriveSlantLeft();
-    Reverse(1);
+
+
+
+
+
+//    DriveSlantLeft();
+    Drive(13);
+
     turnRight();
 //    start = TimeNow();
 //    while (TimeNow() - start < 5 && (top_left_micro.Value() && top_right_micro.Value())) {
@@ -350,12 +368,19 @@ void PT3() {
 //    }
     Reverse(40,60);
     Reverse(20);
-    Drive(4);
+
+
+
+    Drive(4.5);
     turnRight();
     Reverse();
+
+
     servoArm.SetDegree(90);
+
+
     //Find line
-    Drive(14);
+    DriveSlantRight(14.5);
     DriveFindLine(15);
     LineFollow(10.0);
     Reverse(7,10);
@@ -366,11 +391,9 @@ void PT3() {
     servoArm.SetDegree(90);
     turnLeft(30);
     Reverse();
-
-    turnLeft(45);
-    Reverse();
-    Drive(1);
+    Drive(3);
     turnLeft();
+    turnRight(10);
     start = TimeNow();
     while (TimeNow() - start < 10 && (top_left_micro.Value() && top_right_micro.Value())) {
         Drive(1);
@@ -385,14 +408,15 @@ void PT3() {
         Drive(28);
     }
     turnLeft();
-    Drive(5);
+    LineFollow(5.0);
     servoArm.SetDegree(15);
+    Sleep(1.0);
+    servoArm.SetDegree(90);
     Reverse(10, 30);
 }
 
 int main(void)
 {
-
     //servoArm.TouchCalibrate();
     servoArm.SetMin(500);
     servoArm.SetMax(2500);

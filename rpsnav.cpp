@@ -90,7 +90,7 @@ void RPSNav::checkHeading(float heading) //using RPS
     //or close to 0 degrees)
 
     while (std::abs(RPS.Heading() - heading) > 4) {
-        if (RPS.Heading() > heading) {
+        if (((int)(RPS.Heading() - heading + 360.0) % 360) > 180) {
             turn_right(10, 5);
         } else {
             turn_left(10, 5);
