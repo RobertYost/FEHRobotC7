@@ -15,7 +15,12 @@
  /Applications/FEH//Proteus/EWL/EWL_C/include/ewl_lib_ext1.h \
  Libraries/FEHUtility.h Startup/derivative.h Libraries/LCDColors.h \
  Libraries/FEHIO.h Drivers/adc16.h Libraries/FEHMotor.h \
- Libraries/FEHServo.h
+ Libraries/FEHServo.h Libraries/FEHBattery.h Libraries/FEHIO.h \
+ /Applications/FEH//Proteus/EWL/EWL_C/include/cstring \
+ /Applications/FEH//Proteus/EWL/EWL_C/include/null.h \
+ /Applications/FEH//Proteus/EWL/EWL_C/include/size_t.h \
+ /Applications/FEH//Proteus/EWL/EWL_C/include/ewl_rsize_t.h \
+ /Applications/FEH//Proteus/EWL/EWL_C/include/string_api.h
 
 /Applications/FEH//Proteus/EWL/EWL_C++/include/lib_ewl_c++.prefix:
 
@@ -62,3 +67,17 @@ Drivers/adc16.h:
 Libraries/FEHMotor.h:
 
 Libraries/FEHServo.h:
+
+Libraries/FEHBattery.h:
+
+Libraries/FEHIO.h:
+
+/Applications/FEH//Proteus/EWL/EWL_C/include/cstring:
+
+/Applications/FEH//Proteus/EWL/EWL_C/include/null.h:
+
+/Applications/FEH//Proteus/EWL/EWL_C/include/size_t.h:
+
+/Applications/FEH//Proteus/EWL/EWL_C/include/ewl_rsize_t.h:
+
+/Applications/FEH//Proteus/EWL/EWL_C/include/string_api.h:

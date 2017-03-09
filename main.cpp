@@ -3,6 +3,9 @@
 #include <FEHMotor.h>
 #include <FEHUtility.h>
 #include <FEHServo.h>
+#include <FEHBattery.h>
+
+#include <cstring>
 
 AnalogInputPin left(FEHIO::P3_0);
 AnalogInputPin middle(FEHIO::P3_7);
@@ -36,7 +39,7 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 #define TURN_COUNT 265
 #define TURNING_POWER 15
 
-#define INITIAL_TIMEOUT 30
+#define INITIAL_TIMEOUT 5
 
 #define CENTER 0
 #define RIGHT 1
@@ -49,6 +52,36 @@ FEHMotor rightMotor( FEHMotor::Motor1, 12.0);
 #define BLUE_STATE 0
 #define RED_STATE 1
 #define NO_STATE 2
+
+void PrintTelemetry(const char* titles[], bool values[]) {
+    LCD.WriteRC("TELEMETRY VALUES", 1, 4);
+    LCD.WriteRC("Battery: ", 3, 3);
+    LCD.WriteRC((int)(Battery.Voltage() / 11.7 * 100), 3, 12);
+    for(int i = 0; i < sizeof(values); i++) {
+        LCD.WriteRC(titles[i], 4 + i, 3);
+        LCD.WriteRC(values[i], 4 + i, 3 + std::strlen(titles[i]));
+    }
+}
+
+void PrintTelemetry(const char* titles[], int values[]) {
+    LCD.WriteRC("TELEMETRY VALUES", 1, 4);
+    LCD.WriteRC("Battery: ", 3, 3);
+    LCD.WriteRC((int)(Battery.Voltage() / 11.7 * 100), 3, 12);
+    for(int i = 0; i < sizeof(values); i++) {
+        LCD.WriteRC(titles[i], i + 4, 3);
+        LCD.WriteRC(values[i], i + 4, 3 + std::strlen(titles[i]));
+    }
+}
+
+void PrintTelemetry(const char* titles[], float values[]) {
+    LCD.WriteRC("TELEMETRY VALUES", 1, 4);
+    LCD.WriteRC("Battery: ", 3, 3);
+    LCD.WriteRC((int)(Battery.Voltage() / 11.7 * 100), 3, 12);
+    for(unsigned int i = 0; i < sizeof(values); i++) {
+        LCD.WriteRC(titles[i], 4 + i, 3);
+        LCD.WriteRC(values[i], 4 + i, 3 + std::strlen(titles[i]));
+    }
+}
 
 int determineState() {
    int state = CENTER;
@@ -188,8 +221,9 @@ void Reverse() {
     int power = 25;
     leftMotor.SetPercent(-1*MOTOR_CORRECTION*power);
     rightMotor.SetPercent(-1*power);
+
+    const char* titles[] = { "Left Encoder: ", "Right Encoder: " };
     while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 10) {
-        LCD.WriteLine(cds_cell.Value());
     }
     reset();
 }
@@ -292,8 +326,8 @@ void PT3() {
     float start = TimeNow();
     Sleep(2.0);
     while (cds_cell.Value() > .7) {
-        LCD.WriteLine(cds_cell.Value());
-        if (TimeNow() - start > INITIAL_TIMEOUT) {
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
+        if (TimeNow() - start < INITIAL_TIMEOUT) {
             LCD.WriteRC(cds_cell.Value(), 4, 5);
         }
     }
@@ -356,8 +390,6 @@ void PT3() {
     Reverse(10, 30);
 }
 
-
-
 int main(void)
 {
 
@@ -367,11 +399,6 @@ int main(void)
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
-    long start = TimeNowMSec();
-    while (TimeNowMSec() - start < 5000 && (top_left_micro.Value() && top_right_micro.Value())) {
-        LCD.WriteRC("In the loop", 4, 5);
-    }
-    LCD.WriteRC("Out of the loop", 4, 5);
-    //PT3();
+    PT3();
     return 0;
 }
