@@ -104,7 +104,7 @@ void turnLeft() {
     rightMotor.SetPercent(TURNING_POWER);
     leftMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < 280 && rightEncoder.Counts() < 280) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -114,7 +114,7 @@ void turnLeft(float degrees) {
     leftMotor.SetPercent(-1 * TURNING_POWER);
     rightMotor.SetPercent(TURNING_POWER);
     while (leftEncoder.Counts() < (TURN_COUNT / 90) * degrees && rightEncoder.Counts() < (TURN_COUNT / 90) * degrees) {
-
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -124,7 +124,7 @@ void turnRight() {
     leftMotor.SetPercent(TURNING_POWER);
     rightMotor.SetPercent(-1 * TURNING_POWER);
     while (leftEncoder.Counts() < TURN_COUNT && rightEncoder.Counts() < TURN_COUNT) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -145,7 +145,7 @@ void Drive() {
     leftMotor.SetPercent(MOTOR_CORRECTION*power);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -156,7 +156,7 @@ void DriveSlantLeft() {
     leftMotor.SetPercent(MOTOR_CORRECTION*power * 0.92);
     rightMotor.SetPercent(power);
     while(top_right_micro.Value() || top_left_micro.Value()) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -168,7 +168,7 @@ void Drive(float inches) {
     leftMotor.SetPercent(MOTOR_CORRECTION*power);
     rightMotor.SetPercent(power);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
-        LCD.WriteLine(cds_cell.Value());
+        LCD.WriteRC(cds_cell.Value(), 4, 5);
     }
     reset();
 }
@@ -294,7 +294,7 @@ void PT3() {
     while (cds_cell.Value() > .7) {
         LCD.WriteLine(cds_cell.Value());
         if (TimeNow() - start > INITIAL_TIMEOUT) {
-            LCD.WriteLine(cds_cell.Value());
+            LCD.WriteRC(cds_cell.Value(), 4, 5);
         }
     }
     Reverse(9.5);
@@ -311,7 +311,7 @@ void PT3() {
     Reverse(1);
     turnRight();
 //    start = TimeNow();
-//    while (TimeNow() - start < 5 || (top_left_micro.Value() && top_right_micro.Value())) {
+//    while (TimeNow() - start < 5 && (top_left_micro.Value() && top_right_micro.Value())) {
 //        Drive(1);
 //    }
     Reverse(40,60);
@@ -338,7 +338,7 @@ void PT3() {
     Drive(1);
     turnLeft();
     start = TimeNow();
-    while (TimeNow() - start < 10 || (top_left_micro.Value() && top_right_micro.Value())) {
+    while (TimeNow() - start < 10 && (top_left_micro.Value() && top_right_micro.Value())) {
         Drive(1);
     }
     Reverse(2);
@@ -367,6 +367,11 @@ int main(void)
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
-    PT3();
+    long start = TimeNowMSec();
+    while (TimeNowMSec() - start < 5000 && (top_left_micro.Value() && top_right_micro.Value())) {
+        LCD.WriteRC("In the loop", 4, 5);
+    }
+    LCD.WriteRC("Out of the loop", 4, 5);
+    //PT3();
     return 0;
 }
