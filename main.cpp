@@ -335,6 +335,7 @@ void LineFollow(float time)
 }
 
 void PT3() {
+    // detect light to start
     float start = TimeNow();
     Sleep(2.0);
     while (cds_cell.Value() > .7) {
@@ -343,6 +344,8 @@ void PT3() {
             LCD.WriteRC(cds_cell.Value(), 4, 5);
         }
     }
+
+    // navigate to core deposit light, read the color
     Reverse(9.5);
     turnRight();
     Reverse();
@@ -352,45 +355,41 @@ void PT3() {
     while (TimeNow() - time < 3) {
         light_state = ReadCdsCell();
     }
+
+    // drive a little bit and then turn to drive up the hill
     LCD.Clear(FEHLCD::Black);
-
-
-
-
-
-//    DriveSlantLeft();
     Drive(13);
-
     turnRight();
-//    start = TimeNow();
-//    while (TimeNow() - start < 5 && (top_left_micro.Value() && top_right_micro.Value())) {
-//        Drive(1);
-//    }
     Reverse(40,60);
     Reverse(20);
 
-
-
+    // drive out from the seismograph box, turn right, and back up against the wall
     Drive(4.5);
     turnRight();
     Reverse();
 
-
+    // prepare arm
     servoArm.SetDegree(90);
 
 
-    //Find line
+    // find line
     DriveSlantRight(14.5);
     DriveFindLine(15);
     LineFollow(10.0);
+    // backup, lower arm, and then grab the core
     Reverse(7,10);
     servoArm.SetDegree(15);
     LineFollow(4.0);
     servoArm.SetDegree(30);
+    // backup and lift core up
     Reverse(10, 15);
     servoArm.SetDegree(90);
+
+    // back up agains the wall
     turnLeft(30);
     Reverse();
+
+    // rotate and traverse down the hill to the satellite
     Drive(3);
     turnLeft();
     turnRight(10);
@@ -398,20 +397,27 @@ void PT3() {
     while (TimeNow() - start < 10 && (top_left_micro.Value() && top_right_micro.Value())) {
         Drive(1);
     }
-    Reverse(2);
 
+    // backup and line up against the wall on the lower level
+    Reverse(2);
     turnRight();
     Reverse();
+
+    // based on the earlier reading of the light, decide which box to deposit it in and drive there
     if (light_state == BLUE_STATE) {
         Drive(18);
     } else if (light_state == RED_STATE) {
         Drive(28);
     }
+
+    // turn to the box, follow the black line, and then drop the core in that bad boy
     turnLeft();
     LineFollow(5.0);
     servoArm.SetDegree(15);
     Sleep(1.0);
     servoArm.SetDegree(90);
+
+    // leave the scene
     Reverse(10, 30);
 }
 
