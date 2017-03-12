@@ -83,7 +83,28 @@ void PrintTelemetry(const char* titles[], float values[]) {
     }
 }
 
-int determineState() {
+int determineStateOrange() {
+   int state = CENTER;
+   bool leftBool, centerBool, rightBool;
+   leftBool = left.Value() < ORANGE_LEFT_THRESHOLD;
+   centerBool = middle.Value() < ORANGE_MIDDLE_THRESHOLD;
+   rightBool = right.Value() < ORANGE_RIGHT_THRESHOLD;
+
+   if (centerBool) {
+       state = CENTER;
+   } else {
+       if (leftBool) {
+           state = LEFT;
+       }
+       if (rightBool) {
+           state = RIGHT;
+       }
+   }
+
+   return state;
+}
+
+int determineStateBlack() {
    int state = CENTER;
    bool leftBool, centerBool, rightBool;
    leftBool = left.Value() > ORANGE_LEFT_THRESHOLD;
@@ -254,7 +275,17 @@ void Reverse(int inches) {
 void Reverse(int inches, int motorPower) {
     reset();
     float start = TimeNow();
-    leftMotor.SetPercent(-1 * MOTOR_CORRECTION * motorPower);
+    leftMotor.SetPercent(-1 * motorPower * MOTOR_CORRECTION);
+    rightMotor.SetPercent(-1 * motorPower);
+    while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+    }
+    reset();
+}
+
+void ReversePT3(int inches, int motorPower) {
+    reset();
+    float start = TimeNow();
+    leftMotor.SetPercent(-1 * motorPower * 0.90);
     rightMotor.SetPercent(-1 * motorPower);
     while ( rightEncoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
     }
@@ -271,21 +302,21 @@ void ReverseSlant(int inches, int motorPower) {
     reset();
 }
 
-void DriveFindLine(int motorPower){
+void DriveFindLineBlack(int motorPower){
     reset();
     float start = TimeNow();
     leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
     rightMotor.SetPercent(motorPower);
-    while (left.Value() > ORANGE_LEFT_THRESHOLD && right.Value() > ORANGE_RIGHT_THRESHOLD && middle.Value() > ORANGE_MIDDLE_THRESHOLD);
+    while (left.Value() > BLACK_LEFT_THRESHOLD && right.Value() > BLACK_RIGHT_THRESHOLD && middle.Value() > BLACK_MIDDLE_THRESHOLD);
     reset();
 }
 
 void DriveLine()
 {
-    leftMotor.SetPercent(MOTOR_CORRECTION * 10);
+    leftMotor.SetPercent(MOTOR_CORRECTION * 20);
     rightMotor.SetPercent(20);
     float start = TimeNow();
-    while (determineState() == CENTER && TimeNow() - start < 1);
+    while (determineStateBlack() == CENTER && TimeNow() - start < 1);
     leftMotor.Stop();
     rightMotor.Stop();
 }
@@ -295,7 +326,7 @@ void turnLeftLine()
     rightMotor.SetPercent(0);
     leftMotor.SetPercent(10);
     float start = TimeNow();
-    while (determineState() == RIGHT && TimeNow() - start < 1);
+    while (determineStateBlack() == RIGHT && TimeNow() - start < 1);
     leftMotor.Stop();
     rightMotor.Stop();
 }
@@ -305,7 +336,7 @@ void turnRightLine()
     leftMotor.SetPercent(0);
     rightMotor.SetPercent(10);
     float start = TimeNow();
-    while (determineState() == LEFT && TimeNow() - start < 1);
+    while (determineStateBlack() == LEFT && TimeNow() - start < 1);
     leftMotor.Stop();
     rightMotor.Stop();
 }
@@ -315,7 +346,7 @@ void LineFollow(float time)
     float start = TimeNow();
     while (TimeNow() - start < time)
     {
-        int state = determineState();
+        int state = determineStateBlack();
         LCD.WriteLine(state);
         switch (state) {
         case CENTER:
@@ -334,6 +365,77 @@ void LineFollow(float time)
     }
 }
 
+
+
+void DriveFindLineOrange(int motorPower){
+    reset();
+    float start = TimeNow();
+    leftMotor.SetPercent(MOTOR_CORRECTION * motorPower);
+    rightMotor.SetPercent(motorPower);
+    while (left.Value() > ORANGE_LEFT_THRESHOLD && right.Value() > ORANGE_RIGHT_THRESHOLD && middle.Value() > ORANGE_MIDDLE_THRESHOLD);
+    reset();
+}
+
+
+void DriveLineOrange()
+{
+    leftMotor.SetPercent(MOTOR_CORRECTION * 15);
+    rightMotor.SetPercent(15);
+    float start = TimeNow();
+    while (determineStateOrange() == CENTER && TimeNow() - start < 2);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void turnLeftLineOrange()
+{
+    rightMotor.SetPercent(0);
+    leftMotor.SetPercent(15);
+    float start = TimeNow();
+    while (determineStateOrange() == RIGHT && TimeNow() - start < 2);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void turnRightLineOrange()
+{
+    leftMotor.SetPercent(0);
+    rightMotor.SetPercent(15);
+    float start = TimeNow();
+    while (determineStateOrange() == LEFT && TimeNow() - start < 2);
+    leftMotor.Stop();
+    rightMotor.Stop();
+}
+
+void LineFollowOrange(float time)
+{
+    float start = TimeNow();
+    while (TimeNow() - start < time)
+    {
+        int state = determineStateOrange();
+        LCD.WriteRC(state, 1, 1);
+        switch (state) {
+        case CENTER:
+            DriveLineOrange();
+            break;
+        case LEFT:
+            turnRightLineOrange();
+            break;
+        case RIGHT:
+            turnLeftLineOrange();
+            break;
+        default:
+            LCD.WriteRC("I'm going off the line, I am die. RIP", 4, 5);
+            break;
+        }
+    }
+}
+
+
+
+
+
+
 void PT3() {
     // detect light to start
     float start = TimeNow();
@@ -349,7 +451,7 @@ void PT3() {
     Reverse(9.5);
     turnRight();
     Reverse();
-    Drive(6);
+    Drive(6.5);
     double time = TimeNow();
     int light_state = 0;
     while (TimeNow() - time < 3) {
@@ -358,7 +460,7 @@ void PT3() {
 
     // drive a little bit and then turn to drive up the hill
     LCD.Clear(FEHLCD::Black);
-    Drive(13);
+    Drive(12.5);
     turnRight();
     Reverse(40,60);
     Reverse(20);
@@ -374,12 +476,12 @@ void PT3() {
 
     // find line
     DriveSlantRight(14.5);
-    DriveFindLine(15);
-    LineFollow(10.0);
+    DriveFindLineOrange(15);
+    LineFollowOrange(10.0);
     // backup, lower arm, and then grab the core
-    Reverse(7,10);
+    ReversePT3(7,15);
     servoArm.SetDegree(15);
-    LineFollow(4.0);
+    LineFollowOrange(4.0);
     servoArm.SetDegree(30);
     // backup and lift core up
     Reverse(10, 15);
@@ -412,7 +514,8 @@ void PT3() {
 
     // turn to the box, follow the black line, and then drop the core in that bad boy
     turnLeft();
-    LineFollow(5.0);
+    Drive(5,20);
+    ReversePT3(1,15);
     servoArm.SetDegree(15);
     Sleep(1.0);
     servoArm.SetDegree(90);
