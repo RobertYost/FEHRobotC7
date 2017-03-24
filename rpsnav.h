@@ -15,4 +15,6 @@ public:
     void turn_right(int percent, int counts);
 };
 
+extern RPSNav NAV;
+
 #endif // RPSNAV_H

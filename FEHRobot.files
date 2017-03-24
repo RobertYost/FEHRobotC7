@@ -1,3 +1,13 @@
+linefollowing.cpp
+linefollowing.h
+navigation.cpp
+navigation.h
+strings.cpp
+strings.h
+constants.cpp
+constants.h
+debugging.cpp
+debugging.h
 rpsnav.cpp
 rpsnav.h
 main.cpp
