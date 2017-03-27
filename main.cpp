@@ -23,7 +23,7 @@ DigitalInputPin bottom_right_micro(FEHIO::P2_4);
 
 AnalogInputPin cds_cell(FEHIO::P1_0);
 
-FEHServo servoArm(FEHServo::Servo0);
+FEHServo servo_arm(FEHServo::Servo0);
 
 DigitalEncoder left_encoder(FEHIO::P0_2);
 DigitalEncoder right_encoder(FEHIO::P0_0);
@@ -60,6 +60,26 @@ FEHMotor right_motor( FEHMotor::Motor0, 12.0);
 #define NO_STATE 2
 
 #define SPEED 12
+
+bool isStall() {
+  bool leftStall = false;
+  bool rightStall = false;
+
+  int leftStartCount = left_encoder.Counts();
+  int rightStartCount = right_encoder.Counts();
+  //Wait 500 ms to reread encoder counts
+  Sleep(500);
+  int leftEndCount = left_encoder.Counts();
+  int rightEndCount = right_encoder.Counts();
+  if (rightEndCount - rightStartCount < 3) {
+    rightStall = true;
+  }
+  if (leftEndCount - leftStartCount < 3) {
+    leftStall = true;
+  }
+
+  return leftStall && rightStall;
+}
 
 void PrintTelemetry(const char* titles[], bool values[]) {
     LCD.WriteRC("TELEMETRY VALUES", 1, 4);
@@ -252,7 +272,7 @@ void Drive(int inches, int motorPower) {
     float start = TimeNow();
     left_motor.SetPercent(MOTOR_CORRECTION * motorPower);
     right_motor.SetPercent(motorPower);
-    while (right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10);
+    while (right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5);
     reset();
 }
 
@@ -264,7 +284,7 @@ void Reverse() {
     right_motor.SetPercent(-1*power);
 
     const char* titles[] = { "Left Encoder: ", "Right Encoder: " };
-    while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 10) {
+    while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 5) {
     }
     reset();
 }
@@ -275,7 +295,7 @@ void Reverse(int inches) {
     int power = 25;
     left_motor.SetPercent(-1 * MOTOR_CORRECTION * power);
     right_motor.SetPercent(-1 * power);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
     }
     reset();
 }
@@ -284,8 +304,8 @@ void Reverse(int inches, int motorPower) {
     reset();
     float start = TimeNow();
     left_motor.SetPercent(-1 * motorPower * MOTOR_CORRECTION);
-    right_motor.SetPercent(-1 * motorPower);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+    right_motor.SetPercent(-1 * motorPower - 2);
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
     }
     reset();
 }
@@ -295,7 +315,7 @@ void ReversePT3(int inches, int motorPower) {
     float start = TimeNow();
     left_motor.SetPercent(-1 * motorPower * 0.90);
     right_motor.SetPercent(-1 * motorPower);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
     }
     reset();
 }
@@ -522,7 +542,7 @@ void checkHeading(float heading) //using RPS
 //        }
 //    }
 
-    while (std::abs(RPS.Heading() - heading) > 4) {
+    while (std::abs(RPS.Heading() - heading) > 3) {
         if (RPS.Heading() > heading) {
             turn_right(SPEED, 10);
         } else {
@@ -657,7 +677,6 @@ void PT4() {
 int GetCdSValue() {
 
     RPS.InitializeTouchMenu();
-    servoArm.SetDegree(90);
 
     float start = TimeNow();
     Sleep(2.0);
@@ -669,67 +688,200 @@ int GetCdSValue() {
     }
 
     // navigate to core deposit light, read the color
-        Reverse(9.5);
-        turnRight();
-        Reverse();
-        Drive(6.5);
-        double time = TimeNow();
-        int light_state = 0;
-        while (TimeNow() - time < 3) {
-            light_state = ReadCdsCell();
-        }
+    Reverse(9.5);
+    turnRight();
+    Reverse();
+    Drive(6.5);
+    double time = TimeNow();
+    int light_state = 0;
+    while (TimeNow() - time < 3) {
+        light_state = ReadCdsCell();
+    }
 
     return light_state;
 }
 
 void TurnSatellite() {
-    Drive(15);
+    Drive(14.8);
     turnRight();
     while (RPS.SatellitePercent() < 90) {
         Drive(1);
     }
     Reverse(10);
-    Reverse(40, 60);
-    checkHeading(90);
+    Reverse(35, 60);
+    checkHeading(270);
 }
 
 void HitSeismographButton() {
-    turnRight();
-    Drive();
-    Reverse(2);
     turnLeft();
-    checkHeading(270);
-    Reverse(20);
-    Sleep(7.0);
+    Drive();
+    Reverse(4.5);
+    turnRight();
+    Reverse(18);
+    Sleep(6.0);
 }
 
 void PullLever() {
-    Drive(30);
-    checkHeading(180);
+    Drive(18.5);
+    // TODO: RPS Check y position
+    turnRight();
+    Reverse();
+//    checkHeading(180);
+    Drive(25);
+    servo_arm.SetDegree(30);
+    Reverse(1);
+    servo_arm.SetDegree(90);
+    Reverse(16);
+    turnRight(45);
+    checkHeading(135);
 }
+
+void PullCore(int light_state) {
+    Drive(15);
+    DriveFindLineOrange(5);
+    LineFollowOrange(4);
+
+    Reverse(7, 10);
+    servo_arm.SetDegree(20);
+    Drive(10, 15);
+    servo_arm.SetDegree(90);
+    turnLeft(45);
+    Reverse();
+    Drive(3);
+    turnLeft();
+    turnRight(10);
+
+    checkHeading(270);
+    int start = TimeNow();
+    while (TimeNow() - start < 10 && (top_left_micro.Value() && top_right_micro.Value())) {
+        Drive(1);
+    }
+    Reverse(2);
+
+    turnRight();
+    Reverse();
+    if (light_state == BLUE_STATE) {
+        Drive(18);
+    } else if (light_state == RED_STATE) {
+        Drive(28);
+    }
+    turnLeft();
+    LineFollow(5.0);
+    servo_arm.SetDegree(15);
+    Sleep(1.0);
+    servo_arm.SetDegree(90);
+    Reverse(10, 30);
+}
+
+void GoHome() {
+    turnRight();
+    Drive();
+    Reverse(1);
+    turnRight();
+    Drive(7);
+}
+
+
+//void PT3() {
+//    float start = TimeNow();
+//    Sleep(2.0);
+//    while (cds_cell.Value() > .7) {
+//        LCD.WriteRC(cds_cell.Value(), 4, 5);
+//        if (TimeNow() - start < INITIAL_TIMEOUT) {
+//            LCD.WriteRC(cds_cell.Value(), 4, 5);
+//        }
+//    }
+//    Reverse(9.5);
+//    turnRight();
+//    Reverse();
+//    Drive(6);
+//    double time = TimeNow();
+//    int light_state = 0;
+//    while (TimeNow() - time < 3) {
+//        light_state = ReadCdsCell();
+//    }
+//    LCD.Clear(FEHLCD::Black);
+
+
+
+
+
+////    DriveSlantLeft();
+//    Drive(13);
+
+//    turnRight();
+////    start = TimeNow();
+////    while (TimeNow() - start < 5 && (top_left_micro.Value() && top_right_micro.Value())) {
+////        Drive(1);
+////    }
+//    Reverse(40,60);
+//    Reverse(20);
+
+
+
+//    Drive(4.5);
+//    turnRight();
+//    Reverse();
+
+
+//    servoArm.SetDegree(90);
+
+
+//    //Find line
+//    DriveSlantRight(14.5);
+//    DriveFindLine(15);
+//    LineFollow(10.0);
+//    Reverse(7,10);
+//    servoArm.SetDegree(15);
+//    LineFollow(4.0);
+//    servoArm.SetDegree(30);
+//    Reverse(10, 15);
+//    servoArm.SetDegree(90);
+//    turnLeft(30);
+//    Reverse();
+//    Drive(3);
+//    turnLeft();
+//    turnRight(10);
+//    start = TimeNow();
+//    while (TimeNow() - start < 10 && (top_left_micro.Value() && top_right_micro.Value())) {
+//        Drive(1);
+//    }
+//    Reverse(2);
+
+//    turnRight();
+//    Reverse();
+//    if (light_state == BLUE_STATE) {
+//        Drive(18);
+//    } else if (light_state == RED_STATE) {
+//        Drive(28);
+//    }
+//    turnLeft();
+//    LineFollow(5.0);
+//    servoArm.SetDegree(15);
+//    Sleep(1.0);
+//    servoArm.SetDegree(90);
+//    Reverse(10, 30);
+//}
+
 
 void FullCourse() {
     int light_state = GetCdSValue();
     TurnSatellite();
     HitSeismographButton();
+    PullLever();
+    PullCore(light_state);
+    GoHome();
 }
 
 int main(void)
 {
-    servoArm.SetMin(500);
-    servoArm.SetMax(2500);
+    servo_arm.SetMin(500);
+    servo_arm.SetMax(2500);
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
-//    FullCourse();
-    while (true) {
-////        float values[] = { left.Value(), middle.Value(), right.Value() };
-////        PrintTelemetry(Strings::optosensors, values);
-        LCD.WriteRC(left.Value(), 4, 5);
-        LCD.WriteRC(middle.Value(), 5, 5);
-        LCD.WriteRC(right.Value(), 6, 5);
-    }
 
+    FullCourse();
 
     return 0;
 }
