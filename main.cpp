@@ -735,9 +735,6 @@ int main(void)
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
     FullCourse();
-//    DriveFindLineOrange();
-//    LCD.WriteRC("Done",8,1);
-
 
     return 0;
 }
