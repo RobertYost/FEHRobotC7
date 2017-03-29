@@ -38,8 +38,7 @@
  /Applications/FEH//Proteus/EWL/EWL_C/include/math_config.h \
  /Applications/FEH//Proteus/EWL/EWL_C/include/arm/math.ARM.h \
  /Applications/FEH//Proteus/EWL/EWL_C/include/cerrno \
- /Applications/FEH//Proteus/EWL/EWL_C/include/math_integral.h \
- ../strings.h ../debugging.h
+ /Applications/FEH//Proteus/EWL/EWL_C/include/math_integral.h
 
 /Applications/FEH//Proteus/EWL/EWL_C++/include/lib_ewl_c++.prefix:
 
@@ -148,7 +147,3 @@ Libraries/FEHIO.h:
 /Applications/FEH//Proteus/EWL/EWL_C/include/cerrno:
 
 /Applications/FEH//Proteus/EWL/EWL_C/include/math_integral.h:
-
-../strings.h:
-
-../debugging.h:
