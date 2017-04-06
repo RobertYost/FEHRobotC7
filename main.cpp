@@ -36,17 +36,22 @@ FEHMotor right_motor( FEHMotor::Motor0, 12.0);
 #define ORANGE_MIDDLE_THRESHOLD 2
 #define ORANGE_RIGHT_THRESHOLD 2
 
-#define DRIVE_CORRECTION 0.94
+//normal 93
+#define DRIVE_CORRECTION 0.93
 #define COUNTS_PER_INCH 40.19
 
-#define MOTOR_CORRECTION 0.97
+#define MOTOR_CORRECTION 0.99
 #define TURN_COUNT 230
 #define TURN_COUNT_LEFT 243
-#define TURNING_POWER 15
-#define DEFAULT_MOTOR_POWER 25
+//normal 15,25
+#define TURNING_POWER 25
+#define DEFAULT_MOTOR_POWER 30
+#define EXTRA_DRIVE 0
 #define LINE_POWER 20
 
 #define INITIAL_TIMEOUT 5
+#define DRIVE_TIMEOUT 6
+#define STALL_COUNT 50
 
 #define CENTER 0
 #define RIGHT 1
@@ -77,11 +82,11 @@ bool isStall(float count) {
   }
   int leftEndCount = left_encoder.Counts();
   int rightEndCount = right_encoder.Counts();
-  if (rightEndCount - rightStartCount < 5) {
+  if (rightEndCount - rightStartCount < STALL_COUNT) {
      rightStall = true;
      LCD.WriteRC("!!!-----R STALL------!!!",9,1);
   }
-  if (leftEndCount - leftStartCount < 5) {
+  if (leftEndCount - leftStartCount < STALL_COUNT) {
     leftStall = true;
     LCD.WriteRC("!!!-----L STALL------!!!",10,1);
   }
@@ -230,9 +235,9 @@ void turnRight(float degrees) {
 void DriveForSatellite() {
     reset();
     float start = TimeNow();
-    left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER);
-    right_motor.SetPercent(DEFAULT_MOTOR_POWER);
-    while ( RPS.SatellitePercent() < 90 && TimeNow() - start < 10 && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * 30)) {
+    left_motor.SetPercent(MOTOR_CORRECTION*25);
+    right_motor.SetPercent(25);
+    while ( RPS.SatellitePercent() < 90 && TimeNow() - start < DRIVE_TIMEOUT && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * 30)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -240,10 +245,11 @@ void DriveForSatellite() {
 
 void Drive() {
     reset();
-    left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER);
-    right_motor.SetPercent(DEFAULT_MOTOR_POWER);
+    left_motor.SetPercent(MOTOR_CORRECTION*(DEFAULT_MOTOR_POWER+EXTRA_DRIVE));
+    right_motor.SetPercent(DEFAULT_MOTOR_POWER+EXTRA_DRIVE);
     //using large number for isStall since there is no set distance
-    while((top_right_micro.Value() || top_left_micro.Value()) && !isStall(10000)) {
+    float start = TimeNow();
+    while((top_right_micro.Value() || top_left_micro.Value()) && TimeNow() - start < DRIVE_TIMEOUT && !isStall(10000) ) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -252,8 +258,8 @@ void Drive() {
 
 void DriveUntilWall() {
     reset();
-    left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER);
-    right_motor.SetPercent(DEFAULT_MOTOR_POWER);
+    left_motor.SetPercent(MOTOR_CORRECTION*(DEFAULT_MOTOR_POWER+EXTRA_DRIVE));
+    right_motor.SetPercent(DEFAULT_MOTOR_POWER+EXTRA_DRIVE);
     while((top_right_micro.Value() || top_left_micro.Value())) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
@@ -265,8 +271,9 @@ void DriveSlantLeft() {
     reset();
     left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER * 0.92);
     right_motor.SetPercent(DEFAULT_MOTOR_POWER);
+    float start = TimeNow();
     //using large number for isStall since there is no set distance
-    while((top_right_micro.Value() || top_left_micro.Value()) && !isStall(10000)) {
+    while((top_right_micro.Value() || top_left_micro.Value()) && TimeNow() - start < DRIVE_TIMEOUT && !isStall(10000)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -278,7 +285,7 @@ void DriveSlantRight(float inches) {
     float start = TimeNow();
     left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER*1.10);
     right_motor.SetPercent(DEFAULT_MOTOR_POWER);
-    while(right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10 && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
+    while(right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -294,7 +301,7 @@ void Drive(float inches) {
     float start = TimeNow();
     left_motor.SetPercent(MOTOR_CORRECTION*DEFAULT_MOTOR_POWER);
     right_motor.SetPercent(DEFAULT_MOTOR_POWER);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10 && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -306,7 +313,7 @@ void Drive(int inches, int motorPower) {
     float start = TimeNow();
     left_motor.SetPercent(MOTOR_CORRECTION * motorPower);
     right_motor.SetPercent(motorPower);
-    while (right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5 && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
+    while (right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT && !isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -316,11 +323,11 @@ void Drive(int inches, int motorPower) {
 void Reverse() {
     reset();
     float start = TimeNow();
-    left_motor.SetPercent(-1*MOTOR_CORRECTION*DEFAULT_MOTOR_POWER);
-    right_motor.SetPercent(-1*DEFAULT_MOTOR_POWER);
+    left_motor.SetPercent(-1*MOTOR_CORRECTION*(DEFAULT_MOTOR_POWER+EXTRA_DRIVE));
+    right_motor.SetPercent(-1*(DEFAULT_MOTOR_POWER+EXTRA_DRIVE));
 
     const char* titles[] = { "Left Encoder: ", "Right Encoder: " };
-    while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < 5) {
+    while(bottom_right_micro.Value() || bottom_left_micro.Value() && TimeNow() - start < DRIVE_TIMEOUT) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -332,7 +339,7 @@ void Reverse(int inches) {
     float start = TimeNow();
     left_motor.SetPercent(-1 * MOTOR_CORRECTION * DEFAULT_MOTOR_POWER);
     right_motor.SetPercent(-1 * DEFAULT_MOTOR_POWER);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT &&!isStall(DRIVE_CORRECTION * COUNTS_PER_INCH * inches)) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -344,31 +351,31 @@ void Reverse(int inches, int motorPower) {
     float start = TimeNow();
     left_motor.SetPercent(-1 * motorPower * MOTOR_CORRECTION);
     right_motor.SetPercent(-1 * motorPower);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
     reset();
 }
 
-void ReversePT3(int inches, int motorPower) {
+void ReverseSlantLeft(int inches, int motorPower) {
     reset();
     float start = TimeNow();
-    left_motor.SetPercent(-1 * motorPower * 0.90);
+    left_motor.SetPercent(-1 * MOTOR_CORRECTION * motorPower * 0.9);
     right_motor.SetPercent(-1 * motorPower);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 5) {
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
     reset();
 }
 
-void ReverseSlant(int inches, int motorPower) {
+void ReverseSlantRight(int inches, int motorPower) {
     reset();
     float start = TimeNow();
-    left_motor.SetPercent(-1 * MOTOR_CORRECTION * motorPower * 0.96);
-    right_motor.SetPercent(-1 * motorPower);
-    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < 10) {
+    left_motor.SetPercent(-1 * MOTOR_CORRECTION * motorPower);
+    right_motor.SetPercent(-1 * motorPower * 0.9);
+    while ( right_encoder.Counts() <= DRIVE_CORRECTION * COUNTS_PER_INCH * inches && TimeNow() - start < DRIVE_TIMEOUT) {
         LCD.WriteRC(left_encoder.Counts(), 4, 5);
         LCD.WriteRC(right_encoder.Counts(), 5, 5);
     }
@@ -600,8 +607,9 @@ int GetCdSValue() {
     RPS.InitializeTouchMenu();
 
     float start = TimeNow();
+    float startCellValue = cds_cell.Value();
     Sleep(2.0);
-    while (cds_cell.Value() > .7) {
+    while (cds_cell.Value() / startCellValue > 0.9) {
         LCD.WriteRC(cds_cell.Value(), 4, 5);
         if (TimeNow() - start < INITIAL_TIMEOUT) {
             LCD.WriteRC(cds_cell.Value(), 4, 5);
@@ -609,13 +617,13 @@ int GetCdSValue() {
     }
 
     // navigate to core deposit light, read the color
-    Reverse(9.0);
+    Reverse(8.3);
     turnRight();
     Reverse();
     Drive(6.5);
     double time = TimeNow();
     int light_state = 0;
-    while (TimeNow() - time < 3) {
+    while (TimeNow() - time < 1) {
         light_state = ReadCdsCell();
     }
 
@@ -627,18 +635,18 @@ void TurnSatellite() {
     turnRight();
     DriveForSatellite();
     Reverse(10);
-    Reverse(35, 60);
+    Reverse(30, 60);
     checkHeading(280);
 }
 
 void HitSeismographButton() {
-    turnLeft();
+    turnLeft(75);
     checkHeading(359);
     DriveUntilWall();
-    Reverse(5);
+    Reverse(2.5);
     turnRight();
-    Reverse(25);
-    Sleep(3.5);
+    Reverse(26);
+    Sleep(5.0);
 }
 
 void PullLever() {
@@ -646,18 +654,17 @@ void PullLever() {
     // TODO: RPS Check y position
     turnRight();
     Reverse();
-//    checkHeading(180);
     Drive(25);
+    Sleep(0.25);
     servo_arm.SetDegree(30);
     Reverse(1);
     servo_arm.SetDegree(90);
-    Reverse(16);
-    turnRight(20);
-    checkHeading(140);
+    Reverse(14);
+    turnRight(23); // 20
+    checkHeading(143); // 140
 }
 
 bool PullCore(int light_state) {
-    bool isRed;
     Drive(13);
 
     // find the line
@@ -674,12 +681,11 @@ bool PullCore(int light_state) {
         LCD.WriteRC(rightBool, 6, 5);
         LCD.WriteRC("loop end", 7, 5);
         count++;
-    } while (!leftBool && !centerBool && !rightBool && count < 10);
+    } while (!leftBool && !centerBool && !rightBool && count < 5);
     count = 0;
     do {
         turnLeft(1);
         Drive(.05);
-        leftBool = left.Value() < ORANGE_LEFT_THRESHOLD;
         centerBool = middle.Value() < ORANGE_MIDDLE_THRESHOLD;
         rightBool = right.Value() < ORANGE_MIDDLE_THRESHOLD;
         LCD.WriteRC(leftBool, 4, 5);
@@ -687,24 +693,27 @@ bool PullCore(int light_state) {
         LCD.WriteRC(rightBool, 6, 5);
         LCD.WriteRC("loop end", 7, 5);
         count++;
-    } while (!leftBool && !centerBool && !rightBool && count < 15);
+    } while (!centerBool && !rightBool && count < 15);
 
 
-    LineFollowOrange(4);
+    LineFollowOrange(2);
 
-    Reverse(5, 25);
-    turnRight(5);
-    servo_arm.SetDegree(20);
-    LineFollowOrange(4);
-    servo_arm.SetDegree(50);
-    Reverse(8);
-    servo_arm.SetDegree(90);
+    Reverse(5, 20);
+    servo_arm.SetDegree(30);
+    LineFollowOrange(1);
+    servo_arm.SetDegree(45);
+    for (int i = 0; i < 4; i ++) {
+        ReverseSlantLeft(0.25,25);
+        ReverseSlantRight(0.25,25);
+    }
+    Reverse(6);
+    servo_arm.SetDegree(70);
     turnLeft(45);
     Reverse();
     Drive(3);
-    turnLeft();
+    turnLeft(80);
+    checkHeading(257);
 
-    int start = TimeNow();
     Drive(100);
     Reverse(2);
 
@@ -712,10 +721,8 @@ bool PullCore(int light_state) {
     Reverse();
     servo_arm.SetDegree(110);
     if (light_state == BLUE_STATE) {
-        isRed = false;
         Drive(18);
     } else if (light_state == RED_STATE) {
-        isRed = true;
         Drive(28.5);
     }
     turnLeft();
@@ -723,26 +730,26 @@ bool PullCore(int light_state) {
     Reverse(0.5);
     servo_arm.SetDegree(15);
     Sleep(1.0);
+    Reverse(1,25);
     servo_arm.SetDegree(90);
-    Reverse(7, 30);
-    return isRed;
+    Reverse(2, 30);
 }
 
-void GoHome(bool isRed) {
-//    if (isRed) {
-//        Reverse();
-//    } else {
-//        turnRight();
-//        Drive();
-//        Reverse(1);
-//        turnRight();
-//        Drive(7);
-//    }
-    turnRight();
-    Drive();
-    Reverse(1);
-    turnRight();
-    Drive(7);
+void GoHome(int light_state) {
+    if (light_state == BLUE_STATE) {
+        turnLeft(100);
+        double start = TimeNow();
+        left_motor.SetPercent(-35);
+        right_motor.SetPercent(-50);
+        while (TimeNow() - start < 4.0) {
+            LCD.WriteRC("PLACEHOLDER: COMMUNIST MANIFESTO", 1, 1);
+        }
+        turnLeft();
+        Drive(69);
+    } else {
+        left_motor.SetPercent(-60);
+        right_motor.SetPercent(-50);
+    }
 }
 
 
@@ -751,8 +758,8 @@ void FullCourse() {
     TurnSatellite();
     HitSeismographButton();
     PullLever();
-    bool isRed = PullCore(light_state);
-    GoHome(isRed);
+    PullCore(light_state);
+    GoHome(light_state);
 }
 
 int main(void)
@@ -765,7 +772,8 @@ int main(void)
 
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
-    FullCourse();
+     FullCourse();
+//    HitSeismographButton();
 
     return 0;
 }
