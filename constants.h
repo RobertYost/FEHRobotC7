@@ -16,13 +16,13 @@ const float ORANGE_LEFT_THRESHOLD = 1.300;
 const float ORANGE_MIDDLE_THRESHOLD = 1.234;
 const float ORANGE_RIGHT_THRESHOLD = 1.740;
 
-const float DRIVE_CORRECTION = 0.93;
-const float COUNTS_PER_INCH = 40.49;
+const float DRIVE_CORRECTION = 0.91;
+const float COUNTS_PER_INCH = 40.19;
 
-const float MOTOR_CORRECTION = 0.95;
+const float MOTOR_CORRECTION = 0.99;
 const int TURN_COUNT = 230;
 const int TURN_COUNT_LEFT = 243;
-const int TURNING_POWER = 20;
+const int TURNING_POWER = 25;
 const int DEFAULT_MOTOR_POWER = 30;
 const int EXTRA_DRIVE = 0;
 const int LINE_POWER = 20;

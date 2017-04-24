@@ -1,8 +1,8 @@
 #include "constants.h"
 
-AnalogInputPin left(FEHIO::P3_3);
-AnalogInputPin middle(FEHIO::P3_7);
-AnalogInputPin right(FEHIO::P3_0);
+AnalogInputPin left(FEHIO::P3_0);
+AnalogInputPin middle(FEHIO::P3_3);
+AnalogInputPin right(FEHIO::P3_7);
 DigitalInputPin top_left_micro(FEHIO::P0_5);
 DigitalInputPin top_right_micro(FEHIO::P2_1);
 DigitalInputPin bottom_left_micro(FEHIO::P1_6);
