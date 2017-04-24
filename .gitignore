@@ -1,0 +1,14 @@
+.o
+.d
+.idea/
+cmake-build-debug/
+fehproteusfirmware/
+.config
+.txt
+.creator
+.creator.shared
+.creator.user
+.elf
+.map
+.s19
+NUL
