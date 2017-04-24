@@ -1,19 +1,19 @@
-//#include "constants.h"
+#include "constants.h"
 
-//AnalogInputPin left(FEHIO::P3_0);
-//AnalogInputPin middle(FEHIO::P3_7);
-//AnalogInputPin right(FEHIO::P3_4);
-//DigitalInputPin top_left_micro(FEHIO::P0_0);
-//DigitalInputPin top_right_micro(FEHIO::P0_2);
-//DigitalInputPin bottom_left_micro(FEHIO::P0_4);
-//DigitalInputPin bottom_right_micro(FEHIO::P0_6);
+AnalogInputPin left(FEHIO::P3_3);
+AnalogInputPin middle(FEHIO::P3_7);
+AnalogInputPin right(FEHIO::P3_0);
+DigitalInputPin top_left_micro(FEHIO::P0_5);
+DigitalInputPin top_right_micro(FEHIO::P2_1);
+DigitalInputPin bottom_left_micro(FEHIO::P1_6);
+DigitalInputPin bottom_right_micro(FEHIO::P2_4);
 
-//AnalogInputPin cds_cell(FEHIO::P0_7);
+AnalogInputPin cds_cell(FEHIO::P1_0);
 
-//FEHServo servoArm(FEHServo::Servo0);
+FEHServo servo_arm(FEHServo::Servo0);
 
-//DigitalEncoder leftEncoder(FEHIO::P1_0);
-//DigitalEncoder rightEncoder(FEHIO::P1_1);
+DigitalEncoder left_encoder(FEHIO::P0_2);
+DigitalEncoder right_encoder(FEHIO::P0_0);
 
-//FEHMotor leftMotor(FEHMotor::Motor0, 12.0);
-//FEHMotor rightMotor(FEHMotor::Motor1, 12.0);
+FEHMotor left_motor( FEHMotor::Motor1, 12.0);
+FEHMotor right_motor( FEHMotor::Motor0, 12.0);
